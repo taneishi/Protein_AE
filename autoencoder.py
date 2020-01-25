@@ -12,7 +12,6 @@
 #     name: python3
 # ---
 
-# %% _uuid="967a53c6595bcd7d3d61584b69c278715afbf504"
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -24,54 +23,45 @@ from sklearn.model_selection import train_test_split
 from torch.utils.data import TensorDataset
 import matplotlib.pyplot as plt
 
-# %%
-if torch.cuda.is_available():
-    device = torch.device('cuda')
+NO_X = True
 
-# %%
-batch_size = 100
-
-
-# %% _uuid="da094aee0f9612e9297005def1ccaf3da871d86a"
 def show_torch_image(torch_tensor):
-    plt.imshow(torch_tensor.numpy().reshape(28, 28), cmap='gray')
-    plt.show()
+    if not NO_X:
+        plt.imshow(torch_tensor.numpy().reshape(28, 28), cmap='gray')
+        plt.show()
 
 
-# %% _uuid="b732b6d19c25a1a0552a77614b5a86a34a4a163b"
-#Load dataset
-train = pd.read_csv("fashion-mnist_train.csv")
+def load_dataset(batch_size):
+    # Load dataset
+    train = pd.read_csv('fashion-mnist_train.csv')
 
-#normalization and preprocessing
-X = train.iloc[:,1:].values / 255.
-X = (X-0.5) / 0.5
+    # normalization and preprocessing
+    X = train.iloc[:,1:].values / 255.
+    X = (X - 0.5) / 0.5
 
-Y = train.iloc[:,0].values
+    Y = train.iloc[:,0].values
 
-print(X.shape, Y.shape)
+    print(X.shape, Y.shape)
 
-# %% _uuid="2267f9736dd45e2bbe993a60efba11ca9eb4e0c7"
-trn_x, val_x, trn_y, val_y = train_test_split(X, Y, test_size=0.20, random_state=123)
+    train_x, valid_x, train_y, valid_y = train_test_split(X, Y, test_size=0.20, random_state=123)
 
-# %% _uuid="157bd76d6f031d43843cc533a10df7cff60ea852"
-#create torch tensor from numpy array
-trn_x_torch = torch.from_numpy(trn_x).type(torch.FloatTensor)
-trn_y_torch = torch.from_numpy(trn_y)
+    # create torch tensor from numpy array
+    train_x_torch = torch.from_numpy(train_x).type(torch.FloatTensor)
+    train_y_torch = torch.from_numpy(train_y)
 
-val_x_torch = torch.from_numpy(val_x).type(torch.FloatTensor)
-val_y_torch = torch.from_numpy(val_y)
+    valid_x_torch = torch.from_numpy(valid_x).type(torch.FloatTensor)
+    valid_y_torch = torch.from_numpy(valid_y)
 
-trn = TensorDataset(trn_x_torch, trn_y_torch)
-val = TensorDataset(val_x_torch, val_y_torch)
+    train = TensorDataset(train_x_torch, train_y_torch)
+    valid = TensorDataset(valid_x_torch, valid_y_torch)
 
-trn_dataloader = torch.utils.data.DataLoader(trn, batch_size=batch_size, shuffle=False, pin_memory=True, num_workers=4)
-val_dataloader = torch.utils.data.DataLoader(val, batch_size=batch_size, shuffle=False, pin_memory=True, num_workers=4)
+    train_dataloader = torch.utils.data.DataLoader(train, batch_size=batch_size, shuffle=False, pin_memory=True, num_workers=4)
+    valid_dataloader = torch.utils.data.DataLoader(valid, batch_size=batch_size, shuffle=False, pin_memory=True, num_workers=4)
 
-# %% _uuid="0659e9474ffd51685287b5eb586f5fde9699b3ae"
-show_torch_image(trn_x_torch[1])
+    show_torch_image(train_x_torch[1])
 
+    return train_dataloader, valid_dataloader
 
-# %% _uuid="e8e02729a5d6b6b7c637fa25a316784d65313375"
 class AutoEncoder(nn.Module):
     
     def __init__(self):
@@ -103,61 +93,69 @@ class AutoEncoder(nn.Module):
         return x
 
 
-# %% _uuid="b554e18660e2e1c308e5ee4e1d10eef08a7a5361"
-ae = AutoEncoder().to(device)
-print(ae)
+def train(dataloader, model, optimizer, loss_func, batch_size, device):
+    model.train()
+    losses = []
+    EPOCHS = 10
 
-# %% _uuid="e7fa50b1fb713cfe81ea23709196aed7aa5b2d86"
-# define our optimizer and loss function
-loss_func = nn.MSELoss()
-optimizer = torch.optim.Adam(ae.parameters(), lr=1e-3)
-
-# %% _uuid="aceddc5bf85f398528d9a7c7bcc63339b35342e7"
-losses = []
-EPOCHS = 10
-for epoch in range(EPOCHS):
-    for batch_idx, (data, target) in enumerate(trn_dataloader):
-        data = data.to(device)
-    
-        optimizer.zero_grad()
-        pred = ae(data)
+    for epoch in range(EPOCHS):
+        print('epoch: %d' % epoch) 
         
-        loss = loss_func(pred, data)
-        losses.append(loss.cpu().data.item())
+        for data, target in dataloader:
+            data = data.to(device)
         
-        # Backpropagation
-        loss.backward()
-        optimizer.step()
-        
-        # Display
-        if batch_idx % 10 == 1:
-            print('\rTrain Epoch: {}/{} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-                epoch+1,
-                EPOCHS,
-                batch_idx * len(data), 
-                len(trn_dataloader.dataset),
-                batch_size * batch_idx / len(trn_dataloader), 
-                loss.cpu().data.item()), 
-                end='')
-    print('')
+            optimizer.zero_grad()
+            pred = model(data)
+            
+            loss = loss_func(pred, data)
+            losses.append(loss.cpu().data.item())
+            
+            # backpropagation
+            loss.backward()
+            optimizer.step()
+            
+            print('\rloss: %.3f' % loss.cpu().data.item(), end='')
 
-# %% _uuid="6d7f0566578b9c9ba086b7456c5ee1fca08af22b"
-ae.eval()
-predictions = []
+        print('\rloss: %.3f' % loss.cpu().data.item())
 
-for data, target in val_dataloader:
-        data = data.to(device)
-        pred = ae(data)
-        
-        for prediction in pred:
-            predictions.append(prediction)
-               
-len(predictions)
+def test(dataloader, model, device):
+    model.eval()
+    predictions = []
 
-# %% _uuid="96f44ec49ed23faa1e34cbfdfd72bb9e1c1afe7a"
-show_torch_image(val_x_torch[1])
+    for data, target in dataloader:
+            data = data.to(device)
+            pred = model(data)
+            
+            for prediction in pred:
+                predictions.append(prediction)
+                   
+    return predictions
 
-# %% _uuid="5c723e8d1d9ccbe2693f862ac7b94b16b1c7ab83"
-show_torch_image(predictions[1].to('cpu').detach())
+def main():
+    if torch.cuda.is_available():
+        device = torch.device('cuda')
+    else:
+        device = torch.device('cpu')
 
-# %% _uuid="9ef591347d96974556203a89c0bb2ddc4f68c5e6"
+    batch_size = 100
+
+    train_dataloader, valid_dataloader = load_dataset(batch_size)
+
+    ae = AutoEncoder().to(device)
+    print(ae)
+
+    # define our optimizer and loss function
+    loss_func = nn.MSELoss()
+    optimizer = torch.optim.Adam(ae.parameters(), lr=1e-3)
+
+    train(train_dataloader, ae, optimizer, loss_func, batch_size, device)
+
+    predictions = test(valid_dataloader, ae, device)
+    print(len(predictions))
+
+    #show_torch_image(valid_x_torch[1])
+
+    show_torch_image(predictions[1].to('cpu').detach())
+
+if __name__ == '__main__':
+    main()
