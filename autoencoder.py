@@ -99,9 +99,8 @@ def train(dataloader, model, optimizer, loss_func, batch_size, device):
     EPOCHS = 10
 
     for epoch in range(EPOCHS):
-        print('epoch: %d' % epoch) 
         
-        for data, target in dataloader:
+        for index, (data, target) in enumerate(dataloader, 1):
             data = data.to(device)
         
             optimizer.zero_grad()
@@ -114,9 +113,9 @@ def train(dataloader, model, optimizer, loss_func, batch_size, device):
             loss.backward()
             optimizer.step()
             
-            print('\rloss: %.3f' % loss.cpu().data.item(), end='')
+            print('\repoch: %2d [%3d/%3d] loss: %5.3f' % (epoch, index, len(dataloader), loss.cpu().data.item()), end='')
 
-        print('\rloss: %.3f' % loss.cpu().data.item())
+        print('')
 
 def test(dataloader, model, device):
     model.eval()
