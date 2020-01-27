@@ -116,7 +116,7 @@ def main():
     if torch.cuda.is_available():
         device = torch.device('cuda')
     else:
-        device = torch.device('CPU')
+        device = torch.device('cpu')
 
     batch_size = 100
 
