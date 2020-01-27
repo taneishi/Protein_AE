@@ -1,17 +1,4 @@
-# ---
-# jupyter:
-#   jupytext:
-#     text_representation:
-#       extension: .py
-#       format_name: percent
-#       format_version: '1.3'
-#       jupytext_version: 1.3.0
-#   kernelspec:
-#     display_name: Python 3
-#     language: python
-#     name: python3
-# ---
-
+#!/usr/bin/env python
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -23,17 +10,13 @@ from sklearn.model_selection import train_test_split
 from torch.utils.data import TensorDataset
 import matplotlib.pyplot as plt
 
-NO_X = True
-
-def show_torch_image(torch_tensor):
-    if not NO_X:
-        plt.imshow(torch_tensor.numpy().reshape(28, 28), cmap='gray')
-        plt.show()
-
+def show_torch_image(torch_tensor, name):
+    plt.imshow(torch_tensor.numpy().reshape(28, 28), cmap='gray')
+    plt.savefig('figure/%s.png' % name)
 
 def load_dataset(batch_size):
     # Load dataset
-    train = pd.read_csv('fashion-mnist_train.csv')
+    train = pd.read_csv('data/fashion-mnist_train.csv.gz')
 
     # normalization and preprocessing
     X = train.iloc[:,1:].values / 255.
@@ -58,7 +41,8 @@ def load_dataset(batch_size):
     train_dataloader = torch.utils.data.DataLoader(train, batch_size=batch_size, shuffle=False, pin_memory=True, num_workers=4)
     valid_dataloader = torch.utils.data.DataLoader(valid, batch_size=batch_size, shuffle=False, pin_memory=True, num_workers=4)
 
-    show_torch_image(train_x_torch[1])
+    show_torch_image(train_x_torch[1], 'train_sample')
+    show_torch_image(valid_x_torch[1], 'valid_sample')
 
     return train_dataloader, valid_dataloader
 
@@ -92,7 +76,6 @@ class AutoEncoder(nn.Module):
         x = self.output_layer(x)
         return x
 
-
 def train(dataloader, model, optimizer, loss_func, batch_size, device):
     model.train()
     losses = []
@@ -114,7 +97,6 @@ def train(dataloader, model, optimizer, loss_func, batch_size, device):
             optimizer.step()
             
             print('\repoch: %2d [%3d/%3d] loss: %5.3f' % (epoch, index, len(dataloader), loss.cpu().data.item()), end='')
-
         print('')
 
 def test(dataloader, model, device):
@@ -134,7 +116,7 @@ def main():
     if torch.cuda.is_available():
         device = torch.device('cuda')
     else:
-        device = torch.device('cpu')
+        device = torch.device('CPU')
 
     batch_size = 100
 
@@ -152,9 +134,7 @@ def main():
     predictions = test(valid_dataloader, ae, device)
     print(len(predictions))
 
-    #show_torch_image(valid_x_torch[1])
-
-    show_torch_image(predictions[1].to('cpu').detach())
+    show_torch_image(predictions[1].cpu().detach(), 'pred_sample')
 
 if __name__ == '__main__':
     main()
