@@ -1,11 +1,8 @@
 #!/usr/bin/env python
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
-import pandas as pd
-import numpy as np
-
 from sklearn.model_selection import train_test_split
 from torch.utils.data import TensorDataset
 import matplotlib.pyplot as plt
@@ -16,17 +13,17 @@ def show_torch_image(torch_tensor, name):
 
 def load_dataset(batch_size):
     # Load dataset
-    train = pd.read_csv('data/fashion-mnist_train.csv.gz')
+    train = np.load('data/fashion-mnist_train.npz', allow_pickle=True)['data']
 
     # normalization and preprocessing
-    X = train.iloc[:,1:].values / 255.
+    X = train[:,1:] / 255.
     X = (X - 0.5) / 0.5
 
-    Y = train.iloc[:,0].values
-
-    print(X.shape, Y.shape)
+    Y = train[:,0]
 
     train_x, valid_x, train_y, valid_y = train_test_split(X, Y, test_size=0.20, random_state=123)
+
+    print('train %d test %d' % (len(train_y), len(valid_y)))
 
     # create torch tensor from numpy array
     train_x_torch = torch.from_numpy(train_x).type(torch.FloatTensor)
@@ -78,25 +75,19 @@ class AutoEncoder(nn.Module):
 
 def train(dataloader, model, optimizer, loss_func, batch_size, device):
     model.train()
-    losses = []
+    train_loss = 0
     EPOCHS = 10
 
     for epoch in range(EPOCHS):
-        
         for index, (data, target) in enumerate(dataloader, 1):
             data = data.to(device)
-        
             optimizer.zero_grad()
             pred = model(data)
-            
             loss = loss_func(pred, data)
-            losses.append(loss.cpu().data.item())
-            
-            # backpropagation
-            loss.backward()
+            train_loss += loss.item()
+            loss.backward() # backpropagation
             optimizer.step()
-            
-            print('\repoch: %2d [%3d/%3d] loss: %5.3f' % (epoch, index, len(dataloader), loss.cpu().data.item()), end='')
+            print('\repoch: %2d [%3d/%3d] train_loss: %5.3f' % (epoch, index, len(dataloader), loss.item()), end='')
         print('')
 
 def test(dataloader, model, device):
@@ -113,12 +104,10 @@ def test(dataloader, model, device):
     return predictions
 
 def main():
-    if torch.cuda.is_available():
-        device = torch.device('cuda')
-    else:
-        device = torch.device('cpu')
-
     batch_size = 100
+
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print('Using %s device.' % device)
 
     train_dataloader, valid_dataloader = load_dataset(batch_size)
 
