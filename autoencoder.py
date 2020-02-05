@@ -3,9 +3,10 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import torch.utils.data
 from sklearn.model_selection import train_test_split
-from torch.utils.data import TensorDataset
 import matplotlib.pyplot as plt
+import timeit
 
 def show_torch_image(torch_tensor, name):
     plt.imshow(torch_tensor.cpu().reshape(28, 28), cmap='gray')
@@ -32,8 +33,8 @@ def load_dataset(batch_size, device):
     valid_x_torch = torch.FloatTensor(valid_x).to(device)
     valid_y_torch = torch.ShortTensor(valid_y).to(device)
 
-    train = TensorDataset(train_x_torch, train_y_torch)
-    valid = TensorDataset(valid_x_torch, valid_y_torch)
+    train = torch.utils.data.TensorDataset(train_x_torch, train_y_torch)
+    valid = torch.utils.data.TensorDataset(valid_x_torch, valid_y_torch)
 
     train_dataloader = torch.utils.data.DataLoader(train, batch_size=batch_size, shuffle=False)
     valid_dataloader = torch.utils.data.DataLoader(valid, batch_size=batch_size, shuffle=False)
@@ -79,6 +80,7 @@ def train(dataloader, model, optimizer, loss_func, batch_size):
     EPOCHS = 10
 
     for epoch in range(EPOCHS):
+        epoch_start = timeit.default_timer()
         for index, (data, target) in enumerate(dataloader, 1):
             optimizer.zero_grad()
             pred = model(data)
@@ -86,8 +88,8 @@ def train(dataloader, model, optimizer, loss_func, batch_size):
             train_loss += loss.item()
             loss.backward() # backpropagation
             optimizer.step()
-            print('\repoch: %2d [%3d/%3d] train_loss: %5.3f' % (epoch, index, len(dataloader), loss.item()), end='')
-        print('')
+            print('\repoch %2d [%3d/%3d] train_loss %5.3f' % (epoch, index, len(dataloader), loss.item()), end='')
+        print(' time %5.2f' % (timeit.default_timer() - epoch_start))
 
 def test(dataloader, model):
     model.eval()
