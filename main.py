@@ -6,19 +6,17 @@ import torch.utils.data
 import timeit
 import sys
 
-def load_dataset(batch_size, device):
-    if len(sys.argv) < 2:
-        sys.exit('no input filename')
-    else:
-        filename = sys.argv[1]
-
+def load_dataset(filename, batch_size, device):
     # Load dataset
     train = np.load(filename, allow_pickle=True)
     train_y, train_x = train['labels'], train['data']
+
     test = np.load(filename.replace('train', 'test'), allow_pickle=True)
     test_y, test_x = test['labels'], test['data']
 
-    print('train %d test %d' % (len(train_y), len(test_y)))
+    print('train dim', train_x.shape)
+    print('test dim', test_x.shape)
+    assert train_x.shape[1] == test_x.shape[1]
 
     # create torch tensor from numpy array
     train_x_torch = torch.FloatTensor(train_x).to(device)
@@ -38,7 +36,7 @@ class AutoEncoder(nn.Module):
     def __init__(self):
         super(AutoEncoder, self).__init__()
         # encoder
-        self.e1 = nn.Linear(1500, 1000)
+        self.e1 = nn.Linear(2250, 1000)
         self.e2 = nn.Linear(1000, 500)
         self.e3 = nn.Linear(500, 250)
         # Latent View
@@ -47,7 +45,7 @@ class AutoEncoder(nn.Module):
         self.d1 = nn.Linear(100, 250)
         self.d2 = nn.Linear(250, 500)
         self.d3 = nn.Linear(500, 1000)
-        self.output_layer = nn.Linear(1000, 1500)
+        self.output_layer = nn.Linear(1000, 2250)
         
     def forward(self,x):
         x = F.relu(self.e1(x))
@@ -63,7 +61,7 @@ class AutoEncoder(nn.Module):
 def train(dataloader, model, optimizer, loss_func, batch_size):
     model.train()
     train_loss = 0
-    EPOCHS = 1000
+    EPOCHS = 100
 
     for epoch in range(EPOCHS):
         epoch_start = timeit.default_timer()
@@ -87,12 +85,17 @@ def test(dataloader, model):
     return predictions
 
 def main():
-    batch_size = 10
+    batch_size = 100
+
+    if len(sys.argv) < 2:
+        sys.exit('no input filename')
+    else:
+        filename = sys.argv[1]
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print('Using %s device.' % device)
 
-    train_dataloader, test_dataloader = load_dataset(batch_size, device)
+    train_dataloader, test_dataloader = load_dataset(filename, batch_size, device)
 
     ae = AutoEncoder().to(device)
     print(ae)

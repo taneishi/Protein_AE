@@ -4,6 +4,13 @@ import gzip
 import os
 
 def main(filename):
+    print(filename)
+
+    outfile = os.path.join('data', filename[:-6]+'npz')
+
+    if os.path.exists(outfile):
+        return
+
     data = pickle.load(gzip.open(os.path.join('data', filename)))
 
     labels = data[b'labels']
@@ -12,8 +19,6 @@ def main(filename):
     data = np.asarray(data, dtype=np.float32)
 
     print(data, data.shape)
-
-    outfile = os.path.join('data', filename[:-6]+'npz')
 
     np.savez_compressed(outfile, labels=labels, data=data)
 
