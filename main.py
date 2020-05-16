@@ -5,6 +5,7 @@ import torch.nn.functional as F
 import torch.utils.data
 import timeit
 import sys
+import os
 
 def load_dataset(filename, batch_size, device):
     # Load dataset
@@ -14,13 +15,12 @@ def load_dataset(filename, batch_size, device):
     test = np.load(filename.replace('train', 'test'), allow_pickle=True)
     test_y, test_x = test['labels'], test['data']
 
-    print('train dim', train_x.shape)
-    print('test dim', test_x.shape)
+    print('train', train_x.shape)
+    print('test ', test_x.shape)
     assert train_x.shape[1] == test_x.shape[1]
 
     # create torch tensor from numpy array
     train_x_torch = torch.FloatTensor(train_x).to(device)
-
     test_x_torch = torch.FloatTensor(test_x).to(device)
 
     train = torch.utils.data.TensorDataset(train_x_torch)
@@ -66,7 +66,7 @@ class AutoEncoder(nn.Module):
         x = self.output_layer(x)
         return x
 
-def train(dataloader, model, optimizer, loss_func, epoch):
+def train(dataloader, model, optimizer, loss_func):
     model.train()
     train_loss = 0
 
@@ -77,7 +77,9 @@ def train(dataloader, model, optimizer, loss_func, epoch):
         train_loss += loss.item()
         loss.backward()
         optimizer.step()
-        print('\repoch %2d [%3d/%3d] train_loss %5.3f' % (epoch, index, len(dataloader), train_loss / index), end='')
+        print('\rbatch [%3d/%3d] train_loss %6.3f' % (index, len(dataloader), train_loss / index), end='')
+
+    return train_loss / index
 
 def test(dataloader, model, loss_func):
     model.eval()
@@ -88,7 +90,9 @@ def test(dataloader, model, loss_func):
             output = model(data)
         loss = loss_func(output, data)
         test_loss += loss.item()
-    print(' test_loss %5.3f' % (test_loss / index), end='')
+    print(' test_loss %6.3f' % (test_loss / index), end='')
+
+    return test_loss / index
 
 def main():
     epochs = 1000
@@ -104,20 +108,35 @@ def main():
 
     train_dataloader, test_dataloader = load_dataset(filename, batch_size, device)
 
-    ae = AutoEncoder().to(device)
-    print(ae)
+    model = AutoEncoder().to(device)
+    print(model)
 
     # define our optimizer and loss function
     loss_func = nn.MSELoss()
-    optimizer = torch.optim.Adam(ae.parameters(), lr=1e-4)
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
+
+    train_losses = [np.inf]
+    test_losses = [np.inf]
 
     for epoch in range(epochs):
         epoch_start = timeit.default_timer()
 
-        train(train_dataloader, ae, optimizer, loss_func, epoch)
-        test(test_dataloader, ae, loss_func)
+        train_loss = train(train_dataloader, model, optimizer, loss_func)
+        test_loss = test(test_dataloader, model, loss_func)
 
-        print(' time %5.2f' % (timeit.default_timer() - epoch_start))
+        print(' epoch [%4d/%4d] time %5.2f' % (epoch, epochs, (timeit.default_timer() - epoch_start)), end='')
+
+        train_losses.append(train_loss)
+        test_losses.append(test_loss)
+
+        if test_loss < min(test_losses[:-1]):
+            torch.save(model.state_dict(), 'model.pth' % epoch)
+            print(' model updated')
+        else:
+            print('')
+
+        if min(test_losses) < min(test_losses[-10:]):
+            break
 
 if __name__ == '__main__':
     main()

@@ -4,9 +4,11 @@ import gzip
 import os
 
 def main(filename):
-    print(filename)
+    outfile = filename.replace('dat.gz', 'npz')
 
-    outfile = os.path.join('data', filename[:-6]+'npz')
+    print('%s => %s' % (filename, outfile))
+
+    outfile = os.path.join('data', outfile)
 
     if os.path.exists(outfile):
         return
@@ -23,6 +25,6 @@ def main(filename):
     np.savez_compressed(outfile, labels=labels, data=data)
 
 if __name__ == '__main__':
-    for filename in os.listdir('data'):
+    for filename in os.listdir('pkl'):
         if filename.endswith('dat.gz'):
             main(filename)
