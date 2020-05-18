@@ -107,4 +107,6 @@ if __name__ == '__main__':
     parser.add_argument('filename')
     args = parser.parse_args()
 
+    print(vars(args))
+
     main(args)

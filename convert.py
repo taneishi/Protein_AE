@@ -5,7 +5,6 @@ import os
 
 def main(filename):
     outfile = filename.replace('dat.gz', 'npz')
-
     print('%s => %s' % (filename, outfile))
 
     outfile = os.path.join('data', outfile)
