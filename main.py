@@ -4,8 +4,6 @@ import torch.nn as nn
 import torch.utils.data
 import argparse
 import timeit
-import sys
-import os
 
 from model import AutoEncoder
 
@@ -45,7 +43,7 @@ def train(dataloader, model, optimizer, loss_func, epoch):
         loss.backward()
         optimizer.step()
 
-        print('\repoch %4d batch [%3d/%3d] train_loss %6.3f' % (epoch, index, len(dataloader), train_loss / index), end='')
+        print('\repoch %4d batch %4d/%4d train_loss %6.3f' % (epoch, index, len(dataloader), train_loss / index), end='')
 
     return train_loss / index
 
@@ -73,31 +71,25 @@ def main(args):
     train_dataloader, test_dataloader = load_dataset(args.filename, batch_size, device)
 
     model = AutoEncoder().to(device)
-    print(model)
 
     # define our optimizer and loss function
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
     loss_func = nn.MSELoss()
 
-    train_losses = [np.inf]
     test_losses = [np.inf]
 
     for epoch in range(epochs):
         epoch_start = timeit.default_timer()
 
-        train_loss = train(train_dataloader, model, optimizer, loss_func, epoch)
+        train(train_dataloader, model, optimizer, loss_func, epoch)
         test_loss = test(test_dataloader, model, loss_func)
 
-        print(' %5.2f sec' % (timeit.default_timer() - epoch_start), end='')
+        print(' %5.2f sec' % (timeit.default_timer() - epoch_start))
 
-        train_losses.append(train_loss)
         test_losses.append(test_loss)
 
         if test_loss < min(test_losses[:-1]):
             torch.save(model.state_dict(), 'model.pth')
-            print(' model updated')
-        else:
-            print('')
 
         if min(test_losses) < min(test_losses[-10:]):
             break
