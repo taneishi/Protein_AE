@@ -62,12 +62,13 @@ def test(dataloader, model, loss_func):
     return test_loss / index
 
 def main(args):
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cuda' if torch.cuda.is_available() and not args.cpu else 'cpu')
     print('Using %s device.' % device)
 
     train_dataloader, test_dataloader = load_dataset(args.filename, args.batch_size, device)
 
     model = AutoEncoder().to(device)
+    model.load_state_dict(torch.load('model/model.pth'))
 
     # define our optimizer and loss function
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
@@ -96,6 +97,7 @@ if __name__ == '__main__':
     parser.add_argument('filename')
     parser.add_argument('--epochs', default=1000)
     parser.add_argument('--batch_size', default=100)
+    parser.add_argument('--cpu', action='store_true')
     args = parser.parse_args()
 
     print(vars(args))
