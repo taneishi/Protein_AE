@@ -62,13 +62,10 @@ def test(dataloader, model, loss_func):
     return test_loss / index
 
 def main(args):
-    epochs = 1000
-    batch_size = 100
-
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print('Using %s device.' % device)
 
-    train_dataloader, test_dataloader = load_dataset(args.filename, batch_size, device)
+    train_dataloader, test_dataloader = load_dataset(args.filename, args.batch_size, device)
 
     model = AutoEncoder().to(device)
 
@@ -78,7 +75,7 @@ def main(args):
 
     test_losses = [np.inf]
 
-    for epoch in range(epochs):
+    for epoch in range(args.epochs):
         epoch_start = timeit.default_timer()
 
         train(train_dataloader, model, optimizer, loss_func, epoch)
@@ -91,12 +88,14 @@ def main(args):
         if test_loss < min(test_losses[:-1]):
             torch.save(model.state_dict(), 'model.pth')
 
-        if min(test_losses) < min(test_losses[-10:]):
+        if min(test_losses) < min(test_losses[-100:]):
             break
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('filename')
+    parser.add_argument('--epochs', default=1000)
+    parser.add_argument('--batch_size', default=100)
     args = parser.parse_args()
 
     print(vars(args))
