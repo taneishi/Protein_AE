@@ -89,14 +89,11 @@ def main(args):
         if test_loss < min(test_losses[:-1]):
             torch.save(model.state_dict(), 'model.pth')
 
-        if min(test_losses) < min(test_losses[-100:]):
-            break
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('filename')
-    parser.add_argument('--epochs', default=1000)
-    parser.add_argument('--batch_size', default=100)
+    parser.add_argument('--epochs', default=10000)
+    parser.add_argument('--batch_size', default=1000)
     parser.add_argument('--cpu', action='store_true')
     args = parser.parse_args()
 
