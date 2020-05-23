@@ -68,7 +68,8 @@ def main(args):
     train_dataloader, test_dataloader = load_dataset(args.filename, args.batch_size, device)
 
     model = AutoEncoder().to(device)
-    model.load_state_dict(torch.load('model/model.pth'))
+    if args.modelfile:
+        model.load_state_dict(torch.load(args.modelfile))
 
     # define our optimizer and loss function
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
@@ -92,9 +93,10 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('filename')
+    parser.add_argument('--modelfile')
     parser.add_argument('--epochs', default=1000)
     parser.add_argument('--batch_size', default=100)
-    parser.add_argument('--lr', default=1e-4)
+    parser.add_argument('--lr', default=1e-4, type=float)
     parser.add_argument('--cpu', action='store_true')
     args = parser.parse_args()
 
