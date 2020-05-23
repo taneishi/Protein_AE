@@ -71,7 +71,7 @@ def main(args):
     model.load_state_dict(torch.load('model/model.pth'))
 
     # define our optimizer and loss function
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
     loss_func = nn.MSELoss()
 
     test_losses = [np.inf]
@@ -87,13 +87,14 @@ def main(args):
         test_losses.append(test_loss)
 
         if test_loss < min(test_losses[:-1]):
-            torch.save(model.state_dict(), 'model.pth')
+            torch.save(model.state_dict(), 'model/%6.3f.pth' % min(test_losses))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('filename')
-    parser.add_argument('--epochs', default=10000)
-    parser.add_argument('--batch_size', default=1000)
+    parser.add_argument('--epochs', default=1000)
+    parser.add_argument('--batch_size', default=100)
+    parser.add_argument('--lr', default=1e-4)
     parser.add_argument('--cpu', action='store_true')
     args = parser.parse_args()
 
