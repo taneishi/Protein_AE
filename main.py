@@ -88,7 +88,7 @@ def main(args):
         test_losses.append(test_loss)
 
         if test_loss < min(test_losses[:-1]):
-            torch.save(model.state_dict(), 'model/%6.3f.pth' % min(test_losses))
+            torch.save(model.state_dict(), 'model/%5.3f.pth' % min(test_losses))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
