@@ -2,22 +2,18 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.utils.data
+from sklearn.model_selection import train_test_split
 import argparse
 import timeit
 
 from model import AutoEncoder
 
 def load_dataset(filename, batch_size, device):
-    # Load dataset
-    train = np.load(filename, allow_pickle=True)
-    train_y, train_x = train['labels'], train['data']
-
-    test = np.load(filename.replace('train', 'test'), allow_pickle=True)
-    test_y, test_x = test['labels'], test['data']
+    data = np.load(filename, allow_pickle=True)['data']
+    train_x, test_x = train_test_split(data, train_size=0.8, test_size=0.2)
 
     print('train', train_x.shape)
     print('test ', test_x.shape)
-    assert train_x.shape[1] == test_x.shape[1]
 
     # create torch tensor from numpy array
     train_x_torch = torch.FloatTensor(train_x).to(device)
@@ -99,7 +95,6 @@ if __name__ == '__main__':
     parser.add_argument('--lr', default=1e-4, type=float)
     parser.add_argument('--cpu', action='store_true')
     args = parser.parse_args()
-
     print(vars(args))
 
     main(args)

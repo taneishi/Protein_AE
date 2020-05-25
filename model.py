@@ -20,29 +20,18 @@ class AutoEncoder(nn.Module):
         self.d4 = nn.Linear(1000, 1300)
         self.d5 = nn.Linear(1300, 1600)
         self.output_layer = nn.Linear(1600, 1900)
-        self.dropout = 0.0
         
-    def forward(self,x):
+    def forward(self, x):
         x = F.relu(self.e1(x))
-        x = F.dropout(x. self.dropout)
         x = F.relu(self.e2(x))
-        x = F.dropout(x. self.dropout)
         x = F.relu(self.e3(x))
-        x = F.dropout(x. self.dropout)
         x = F.relu(self.e4(x))
-        x = F.dropout(x. self.dropout)
         x = F.relu(self.e5(x))
-        x = F.dropout(x. self.dropout)
         x = torch.sigmoid(self.lv(x))
-        x = F.dropout(x. self.dropout)
         x = F.relu(self.d1(x))
-        x = F.dropout(x. self.dropout)
         x = F.relu(self.d2(x))
-        x = F.dropout(x. self.dropout)
         x = F.relu(self.d3(x))
-        x = F.dropout(x. self.dropout)
         x = F.relu(self.d4(x))
-        x = F.dropout(x. self.dropout)
         x = F.relu(self.d5(x))
         x = self.output_layer(x)
         return x
