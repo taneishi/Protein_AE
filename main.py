@@ -69,6 +69,7 @@ def main(args):
 
     # define our optimizer and loss function
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+    #optimizer = torch.optim.Adagrad(model.parameters(), lr=args.lr, lr_decay=args.lr_decay, weight_decay=args.weight_decay)
     loss_func = nn.MSELoss()
 
     test_losses = []
@@ -90,9 +91,11 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('filename')
     parser.add_argument('modelfile', nargs='?')
-    parser.add_argument('--epochs', default=1000)
-    parser.add_argument('--batch_size', default=100)
+    parser.add_argument('--epochs', default=1000, type=int)
+    parser.add_argument('--batch_size', default=100, type=int)
     parser.add_argument('--lr', default=1e-4, type=float)
+    parser.add_argument('--lr_decay', default=0., type=float)
+    parser.add_argument('--weight_decay', default=0., type=float)
     parser.add_argument('--cpu', action='store_true')
     args = parser.parse_args()
     print(vars(args))
