@@ -93,7 +93,6 @@ if __name__ == '__main__':
     parser.add_argument('--epochs', default=1000, type=int)
     parser.add_argument('--batch_size', default=100, type=int)
     parser.add_argument('--lr', default=1e-4, type=float)
-    parser.add_argument('--lr_decay', default=0., type=float)
     parser.add_argument('--weight_decay', default=0., type=float)
     parser.add_argument('--cpu', action='store_true')
     args = parser.parse_args()
