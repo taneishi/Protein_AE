@@ -68,8 +68,7 @@ def main(args):
         model.load_state_dict(torch.load(args.modelfile))
 
     # define our optimizer and loss function
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
-    #optimizer = torch.optim.Adagrad(model.parameters(), lr=args.lr, lr_decay=args.lr_decay, weight_decay=args.weight_decay)
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     loss_func = nn.MSELoss()
 
     test_losses = []
@@ -84,7 +83,7 @@ def main(args):
 
         test_losses.append(test_loss)
 
-        if len(test_losses) > 1 and test_loss < min(test_losses[:-1]):
+        if test_loss <= min(test_losses):
             torch.save(model.state_dict(), 'model/%5.3f.pth' % min(test_losses))
 
 if __name__ == '__main__':
