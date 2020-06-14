@@ -12,9 +12,6 @@ def load_dataset(filename, batch_size, device):
     data = np.load(filename, allow_pickle=True)['data']
     train_x, test_x = train_test_split(data, train_size=0.8, test_size=0.2)
 
-    print('train', train_x.shape)
-    print('test ', test_x.shape)
-
     # create torch tensor from numpy array
     train_x_torch = torch.FloatTensor(train_x).to(device)
     test_x_torch = torch.FloatTensor(test_x).to(device)
@@ -63,9 +60,11 @@ def main(args):
 
     train_dataloader, test_dataloader = load_dataset(args.filename, args.batch_size, device)
 
-    model = AutoEncoder().to(device)
+    model = AutoEncoder(input_dim=1900, nlayers=5, latent=100).to(device)
     if args.modelfile:
         model.load_state_dict(torch.load(args.modelfile))
+
+    print(model)
 
     # define our optimizer and loss function
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)

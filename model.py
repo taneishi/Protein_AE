@@ -3,23 +3,41 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class AutoEncoder(nn.Module):
-    def __init__(self, input_dim=1900):
+    def __init__(self, input_dim=1900, nlayers=5, latent=100):
         super(AutoEncoder, self).__init__()
-        # encoder
-        self.e1 = nn.Linear(input_dim, 1000)
-        self.e2 = nn.Linear(1000, 500)
+        delta = int((input_dim - latent) / (nlayers + 1))
+        # Encoder
+        encoder = []
+        nunits = input_dim
+
+        for layer in range(nlayers):
+            encoder.append(nn.Linear(nunits, nunits - delta))
+            nunits = nunits - delta
+        self.encoder = nn.ModuleList(encoder)
+
         # Latent View
-        self.lv = nn.Linear(500, 100)
+        self.lv = nn.Linear(nunits, latent)
+
         # Decoder
-        self.d1 = nn.Linear(100, 500)
-        self.d2 = nn.Linear(500, 1000)
-        self.output_layer = nn.Linear(1000, input_dim)
+        decoder = []
+        nunits = latent
+
+        for layer in range(nlayers):
+            decoder.append(nn.Linear(nunits, nunits + delta))
+            nunits = nunits + delta
+        self.decoder = nn.ModuleList(decoder)
+
+        self.output_layer = nn.Linear(nunits, input_dim)
         
-    def forward(self, x):
-        x = F.relu(self.e1(x))
-        x = F.relu(self.e2(x))
+    def forward(self, x, activation=F.relu):
+        for layer in self.encoder:
+            x = activation(layer(x))
+
         x = torch.sigmoid(self.lv(x))
-        x = F.relu(self.d1(x))
-        x = F.relu(self.d2(x))
+        #x = activation(self.lv(x))
+
+        for layer in self.decoder:
+            x = activation(layer(x))
+
         x = self.output_layer(x)
         return x
