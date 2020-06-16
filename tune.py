@@ -41,7 +41,7 @@ def test(dataloader, model):
 
     return test_loss / index
 
-def train_evaluate(parameterization):
+def train_test(parameterization):
     dtype = torch.float
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     batch_size = 100
@@ -59,7 +59,7 @@ def tune():
             {'name': 'nlayers', 'type': 'range', 'bounds': [2, 6], 'log_scale': False},
             #{'name': 'momentum', 'type': 'range', 'bounds': [0.0, 1.0]},
         ],
-        evaluation_function=train_evaluate,
+        evaluation_function=train_test,
         objective_name='mse_loss',
     )
 
