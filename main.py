@@ -8,16 +8,16 @@ import timeit
 
 from model import AutoEncoder
 
-def load_dataset(filename, batch_size, device):
-    data = np.load(filename, allow_pickle=True)['data']
+def load_dataset(datafile, batch_size, device):
+    data = np.load(datafile, allow_pickle=True)['data']
     train_x, test_x = train_test_split(data, train_size=0.8, test_size=0.2)
 
     # create torch tensor from numpy array
-    train_x_torch = torch.FloatTensor(train_x).to(device)
-    test_x_torch = torch.FloatTensor(test_x).to(device)
+    train_x = torch.FloatTensor(train_x).to(device)
+    test_x = torch.FloatTensor(test_x).to(device)
 
-    train = torch.utils.data.TensorDataset(train_x_torch)
-    test = torch.utils.data.TensorDataset(test_x_torch)
+    train = torch.utils.data.TensorDataset(train_x)
+    test = torch.utils.data.TensorDataset(test_x)
 
     train_dataloader = torch.utils.data.DataLoader(train, batch_size=batch_size, shuffle=True)
     test_dataloader = torch.utils.data.DataLoader(test, batch_size=batch_size, shuffle=True)
@@ -58,7 +58,7 @@ def main(args):
     device = torch.device('cuda' if torch.cuda.is_available() and not args.cpu else 'cpu')
     print('Using %s device.' % device)
 
-    train_dataloader, test_dataloader = load_dataset(args.filename, args.batch_size, device)
+    train_dataloader, test_dataloader = load_dataset(args.datafile, args.batch_size, device)
 
     model = AutoEncoder(input_dim=1900, nlayers=5, latent=100).to(device)
     if args.modelfile:
@@ -87,8 +87,8 @@ def main(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('filename')
-    parser.add_argument('modelfile', nargs='?')
+    parser.add_argument('--datafile', default='data/aponc_sda.npz')
+    parser.add_argument('--modelfile', default=None, type=str)
     parser.add_argument('--epochs', default=1000, type=int)
     parser.add_argument('--batch_size', default=100, type=int)
     parser.add_argument('--lr', default=1e-4, type=float)
