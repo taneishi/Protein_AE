@@ -34,7 +34,6 @@ class AutoEncoder(nn.Module):
             x = activation(layer(x))
 
         x = torch.sigmoid(self.lv(x))
-        #x = activation(self.lv(x))
 
         for layer in self.decoder:
             x = activation(layer(x))
