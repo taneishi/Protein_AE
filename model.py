@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class AutoEncoder(nn.Module):
-    def __init__(self, input_dim=1900, nlayers=5, latent=100):
+    def __init__(self, input_dim=1900, nlayers=4, latent=100):
         super(AutoEncoder, self).__init__()
         delta = int((input_dim - latent) / (nlayers + 1))
         # Encoder

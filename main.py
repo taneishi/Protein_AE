@@ -36,7 +36,7 @@ def train(dataloader, model, optimizer, loss_func, epoch):
         loss.backward()
         optimizer.step()
 
-        print('\repoch %4d batch %4d/%4d train_loss %6.3f' % (epoch, index, len(dataloader), train_loss / index), end='')
+    print('epoch %4d batch %4d/%4d train_loss %6.3f' % (epoch, index, len(dataloader), train_loss / index), end='')
 
     return train_loss / index
 
@@ -60,7 +60,8 @@ def main(args):
 
     train_dataloader, test_dataloader = load_dataset(args.datafile, args.batch_size, device)
 
-    model = AutoEncoder(input_dim=1900, nlayers=5, latent=100).to(device)
+    model = AutoEncoder(input_dim=1900, nlayers=args.nlayers, latent=100).to(device)
+
     if args.modelfile:
         model.load_state_dict(torch.load(args.modelfile))
 
@@ -87,12 +88,13 @@ def main(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--datafile', default='data/aponc_sda.npz')
+    parser.add_argument('datafile', nargs='+')
     parser.add_argument('--modelfile', default=None, type=str)
     parser.add_argument('--epochs', default=1000, type=int)
     parser.add_argument('--batch_size', default=100, type=int)
     parser.add_argument('--lr', default=1e-4, type=float)
     parser.add_argument('--weight_decay', default=0., type=float)
+    parser.add_argument('--nlayers', default=4, type=int)
     parser.add_argument('--cpu', action='store_true')
     args = parser.parse_args()
     print(vars(args))
