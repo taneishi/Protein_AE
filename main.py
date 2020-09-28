@@ -11,7 +11,7 @@ import os
 from model import AutoEncoder
 
 def load_dataset(args, device, world_size):
-    data = torch.load(args.datafile)['data']
+    data = np.load(args.datafile, allow_pickle=True)['data']
     train_x, test_x = train_test_split(data, train_size=0.8, test_size=0.2)
 
     # create torch tensor from numpy array
