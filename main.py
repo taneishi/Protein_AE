@@ -3,16 +3,52 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.utils.data
-from sklearn.model_selection import train_test_split
 import argparse
 import timeit
-import os
 
-from model import AutoEncoder
+class AutoEncoder(nn.Module):
+    def __init__(self, input_dim=1900, nlayers=4, latent=100):
+        super(AutoEncoder, self).__init__()
+        delta = int((input_dim - latent) / (nlayers + 1))
 
-def load_dataset(args, device, world_size):
-    data = np.load(args.datafile, allow_pickle=True)['data']
-    train_x, test_x = train_test_split(data, train_size=0.8, test_size=0.2)
+        # Encoder
+        encoder = []
+        nunits = input_dim
+
+        for layer in range(nlayers):
+            encoder.append(nn.Linear(nunits, nunits - delta))
+            nunits = nunits - delta
+        self.encoder = nn.ModuleList(encoder)
+
+        # Latent View
+        self.lv = nn.Linear(nunits, latent)
+
+        # Decoder
+        decoder = []
+        nunits = latent
+
+        for layer in range(nlayers):
+            decoder.append(nn.Linear(nunits, nunits + delta))
+            nunits = nunits + delta
+        self.decoder = nn.ModuleList(decoder)
+
+        self.output_layer = nn.Linear(nunits, input_dim)
+        
+    def forward(self, x, activation=F.relu):
+        for layer in self.encoder:
+            x = activation(layer(x))
+
+        x = torch.sigmoid(self.lv(x))
+
+        for layer in self.decoder:
+            x = activation(layer(x))
+
+        x = self.output_layer(x)
+        return x
+
+def load_dataset(args, device):
+    train_x = np.load(args.train_datafile, allow_pickle=True)['train']
+    test_x = np.load(args.test_datafile, allow_pickle=True)['test']
 
     # create torch tensor from numpy array
     train_x = torch.FloatTensor(train_x).to(device)
@@ -21,14 +57,8 @@ def load_dataset(args, device, world_size):
     train = torch.utils.data.TensorDataset(train_x)
     test = torch.utils.data.TensorDataset(test_x)
 
-    if world_size > 1:
-        sampler_train = torch.utils.data.distributed.DistributedSampler(train)
-        train_dataloader = torch.utils.data.DataLoader(train, batch_size=args.batch_size, sampler=sampler_train)
-        sampler_test = torch.utils.data.distributed.DistributedSampler(test)
-        test_dataloader = torch.utils.data.DataLoader(test, batch_size=args.batch_size, sampler=sampler_test)
-    else:
-        train_dataloader = torch.utils.data.DataLoader(train, batch_size=args.batch_size, shuffle=True)
-        test_dataloader = torch.utils.data.DataLoader(test, batch_size=args.batch_size, shuffle=True)
+    train_dataloader = torch.utils.data.DataLoader(train, batch_size=args.batch_size, shuffle=True)
+    test_dataloader = torch.utils.data.DataLoader(test, batch_size=args.batch_size, shuffle=True)
 
     return train_dataloader, test_dataloader
 
@@ -63,65 +93,29 @@ def test(dataloader, net, loss_func):
     return test_loss / index
 
 def main(args):
-    device = torch.device('cuda' if torch.cuda.is_available() and not args.cpu else 'cpu')
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print('Using %s device.' % device)
 
-    world_size = int(os.environ[args.env_size]) if args.env_size in os.environ else 1
-    local_rank = int(os.environ[args.env_rank]) if args.env_rank in os.environ else 0
-
-    if local_rank == 0:
-        print(vars(args))
-
-    if world_size > 1:
-        print('rank: {}/{}'.format(local_rank+1, world_size))
-        torch.distributed.init_process_group(
-                backend='gloo',
-                init_method='file://%s' % args.tmpname,
-                rank=local_rank,
-                world_size=world_size)
-
-    train_dataloader, test_dataloader = load_dataset(args, device, world_size)
+    train_dataloader, test_dataloader = load_dataset(args, device)
 
     net = AutoEncoder(input_dim=1900, nlayers=args.nlayers, latent=100).to(device)
 
-    if world_size > 1:
-        net = torch.nn.parallel.DistributedDataParallel(net)
-
-    if args.modelfile:
-        net.load_state_dict(torch.load(args.modelfile))
-
     # define our optimizer and loss function
-    optimizer = torch.optim.Adam(net.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+    optimizer = torch.optim.Adam(net.parameters(), lr=args.lr)
     loss_func = nn.MSELoss(reduction='mean')
 
-    test_losses = []
-
     for epoch in range(args.epochs):
-        epoch_start = timeit.default_timer()
-
         train(train_dataloader, net, optimizer, loss_func, epoch)
-        test_loss = test(test_dataloader, net, loss_func)
-
-        print(' %5.2f sec' % (timeit.default_timer() - epoch_start))
-
-        test_losses.append(test_loss)
-
-        if test_loss <= min(test_losses):
-            torch.save(net.state_dict(), 'model/%5.3f.pth' % min(test_losses))
+        test(test_dataloader, net, loss_func)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--datafile', required=True, type=str)
-    parser.add_argument('--modelfile', default=None, type=str)
+    parser.add_argument('--train_datafile', required=True, type=str)
+    parser.add_argument('--test_datafile', required=True, type=str)
     parser.add_argument('--epochs', default=1000, type=int)
     parser.add_argument('--batch_size', default=10, type=int)
     parser.add_argument('--lr', default=1e-4, type=float)
-    parser.add_argument('--weight_decay', default=0, type=float)
     parser.add_argument('--nlayers', default=4, type=int)
-    parser.add_argument('--cpu', action='store_true')
-    parser.add_argument('--tmpname', default='tmpfile', type=str)
-    parser.add_argument('--env_size', default='WORLD_SIZE', type=str)
-    parser.add_argument('--env_rank', default='RANK', type=str)
     args = parser.parse_args()
 
     main(args)
