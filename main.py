@@ -47,8 +47,8 @@ class AutoEncoder(nn.Module):
         return x
 
 def load_dataset(args, device):
-    train_x = np.load(args.train_datafile, allow_pickle=True)['train']
-    test_x = np.load(args.test_datafile, allow_pickle=True)['test']
+    train_x = np.load(args.datafile, allow_pickle=True)['train']
+    test_x = np.load(args.datafile, allow_pickle=True)['test']
 
     # create torch tensor from numpy array
     train_x = torch.FloatTensor(train_x).to(device)
@@ -110,8 +110,7 @@ def main(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--train_datafile', required=True, type=str)
-    parser.add_argument('--test_datafile', required=True, type=str)
+    parser.add_argument('--datafile', required=True, type=str)
     parser.add_argument('--epochs', default=1000, type=int)
     parser.add_argument('--batch_size', default=10, type=int)
     parser.add_argument('--lr', default=1e-4, type=float)
