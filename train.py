@@ -37,7 +37,7 @@ def main(args):
             loss.backward()
             optimizer.step()
 
-            print('\repoch %3d/%3d batch %3d/%3d' % (epoch, args.epochs, index, len(train_loader)), end='')
+            print('\repoch %3d/%3d batch %3d/%3d' % (epoch + 1, args.epochs, index, len(train_loader)), end='')
             print(' train_loss %6.3f' % (train_loss / index), end='')
 
         print(' %4.1fsec' % (timeit.default_timer() - start_time))
