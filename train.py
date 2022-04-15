@@ -62,7 +62,7 @@ def main(args):
     net = AutoEncoder(input_dim=1900, nlayers=args.nlayers, latent=100).to(device)
 
     # define optimizer and loss function
-    optimizer = torch.optim.Adam(net.parameters(), lr=args.lr)
+    optimizer = torch.optim.Adam(net.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     loss_func = nn.MSELoss(reduction='mean')
 
     for epoch in range(args.epochs):
@@ -73,11 +73,12 @@ def main(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--datafile', required=True, type=str)
+    parser.add_argument('--datafile', required=True, type=str) # data/aponc_sda.npz
     parser.add_argument('--modelfile', required=True, type=str)
     parser.add_argument('--epochs', default=1000, type=int)
     parser.add_argument('--batch_size', default=10, type=int)
     parser.add_argument('--lr', default=1e-4, type=float)
+    parser.add_argument('--weight_decay', default=0, type=float)
     parser.add_argument('--nlayers', default=4, type=int)
     args = parser.parse_args()
 
